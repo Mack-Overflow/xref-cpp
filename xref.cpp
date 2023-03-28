@@ -6,22 +6,41 @@
 #include <iomanip>
 #include <vector>
 #include <algorithm>
+#include <regex>
+#include <cctype>
 
 const int MAX_LINE_NUMBERS = 9;
 
-// Function to sanitize a token by removing any non-letter, hyphen, or apostrophe characters
-std::string sanitize_token(std::string token) {
-    std::string sanitized = "";
-    for (char c : token) {
-        if (isalpha(c) || c == '-' || c == '\'') {
-            sanitized += tolower(c);
+struct case_insensitive_less {
+    bool operator() (const std::string& a, const std::string& b) const {
+        std::string a_lower = to_lower_case(a);
+        std::string b_lower = to_lower_case(b);
+        
+        if (a_lower == b_lower) {
+            return a < b;
+        } else {
+            return a_lower < b_lower;
         }
     }
-    return sanitized;
+    
+    std::string to_lower_case(const std::string& s) const {
+        std::string result;
+        result.reserve(s.size());
+        for (char c : s) {
+            result += std::tolower(c);
+        }
+        return result;
+    }
+};
+
+// Function to sanitize a token by removing any non-letter, hyphen, or apostrophe characters
+std::string sanitize_token(std::string token) {
+    std::regex pattern("[^a-zA-Z'-]");
+    return std::regex_replace(token, pattern, "");
 }
 
 int main(int argc, char* argv[]) {
-    std::map<std::string, std::vector<int>> xref;
+    std::map<std::string, std::vector<int>, case_insensitive_less > xref;
 
     // Check if a filename was passed in as a command-line argument
     if (argc > 1) {
@@ -76,7 +95,7 @@ int main(int argc, char* argv[]) {
     for (auto it = xref.begin(); it != xref.end(); ++it) {
         std::string token = it->first;
         std::vector<int> line_numbers = it->second;
-        std::sort(line_numbers.begin(), line_numbers.end());
+        // std::sort(line_numbers.begin(), line_numbers.end());
         std::cout << std::setw(max_token_length) << std::left << token << " : ";
 
         int count = 0;
